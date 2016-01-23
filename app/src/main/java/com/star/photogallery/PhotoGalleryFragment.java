@@ -8,6 +8,7 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,6 +23,7 @@ public class PhotoGalleryFragment extends Fragment {
 
     private RecyclerView mPhotoRecyclerView;
     private List<GalleryItem> mGalleryItems = new ArrayList<>();
+    private ThumbnailDownloader<PhotoHolder> mPhotoHolderThumbnailDownloader;
 
     public static PhotoGalleryFragment newInstance() {
         return new PhotoGalleryFragment();
@@ -33,6 +35,12 @@ public class PhotoGalleryFragment extends Fragment {
         setRetainInstance(true);
 
         new FetchItemsTask().execute();
+
+        mPhotoHolderThumbnailDownloader = new ThumbnailDownloader<>();
+        mPhotoHolderThumbnailDownloader.start();
+        mPhotoHolderThumbnailDownloader.getLooper();
+
+        Log.i(TAG, "Background thread started");
     }
 
     @Nullable
