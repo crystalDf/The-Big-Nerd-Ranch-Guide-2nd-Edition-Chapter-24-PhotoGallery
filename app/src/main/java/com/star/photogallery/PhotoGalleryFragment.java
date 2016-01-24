@@ -57,6 +57,14 @@ public class PhotoGalleryFragment extends Fragment {
         return view;
     }
 
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mPhotoHolderThumbnailDownloader.quit();
+
+        Log.i(TAG, "Background thread destroyed");
+    }
+
     private void setupAdapter() {
         if (isAdded()) {
             mPhotoRecyclerView.setAdapter(new PhotoAdapter(mGalleryItems));
