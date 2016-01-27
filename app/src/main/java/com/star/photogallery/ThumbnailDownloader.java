@@ -23,5 +23,12 @@ public class ThumbnailDownloader<T> extends HandlerThread {
 
     public void queueThumbnail(T target, String url) {
         Log.i(TAG, "Got a URL " + url);
+
+        if (url == null) {
+            mRequestMap.remove(target);
+        } else {
+            mRequestMap.put(target, url);
+            mRequestHandler.obtainMessage(MESSAGE_DOWNLOAD, target).sendToTarget();
+        }
     }
 }
