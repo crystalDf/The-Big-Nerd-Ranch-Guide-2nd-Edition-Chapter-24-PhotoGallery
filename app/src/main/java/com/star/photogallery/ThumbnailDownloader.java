@@ -2,6 +2,7 @@ package com.star.photogallery;
 
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.Message;
 import android.util.Log;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,6 +20,23 @@ public class ThumbnailDownloader<T> extends HandlerThread {
 
     public ThumbnailDownloader() {
         super(TAG);
+    }
+
+    @Override
+    protected void onLooperPrepared() {
+        mRequestHandler = new Handler() {
+            @Override
+            public void handleMessage(Message msg) {
+                if (msg.what == MESSAGE_DOWNLOAD) {
+                    T target = (T) msg.obj;
+                    Log.i(TAG, "Got a request from a URL: " + mRequestMap.get(target));
+                    handleRequest(target);
+                }
+            }
+        };
+    }
+
+    private void handleRequest(T target) {
     }
 
     public void queueThumbnail(T target, String url) {
