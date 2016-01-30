@@ -21,8 +21,21 @@ public class ThumbnailDownloader<T> extends HandlerThread {
     private Handler mRequestHandler;
     private ConcurrentMap<T, String> mRequestMap = new ConcurrentHashMap<>();
 
-    public ThumbnailDownloader() {
+    private Handler mResponseHandler;
+    private ThumbnailDownloadListener<T> mThumbnailDownloadListener;
+
+    public interface ThumbnailDownloadListener<T> {
+        void onThumbnailDownloaded(T target, Bitmap thumbnail);
+    }
+
+    public void setThumbnailDownloadListener(ThumbnailDownloadListener<T> thumbnailDownloadListener) {
+        mThumbnailDownloadListener = thumbnailDownloadListener;
+    }
+
+    public ThumbnailDownloader(Handler responseHandler) {
         super(TAG);
+
+        mRequestHandler = responseHandler;
     }
 
     @Override
