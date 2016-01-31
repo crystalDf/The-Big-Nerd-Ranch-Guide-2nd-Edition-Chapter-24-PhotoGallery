@@ -1,9 +1,12 @@
 package com.star.photogallery;
 
 
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.GridLayoutManager;
@@ -36,7 +39,19 @@ public class PhotoGalleryFragment extends Fragment {
 
         new FetchItemsTask().execute();
 
-        mPhotoHolderThumbnailDownloader = new ThumbnailDownloader<>();
+        Handler responseHandler = new Handler();
+
+        mPhotoHolderThumbnailDownloader = new ThumbnailDownloader<>(responseHandler);
+        mPhotoHolderThumbnailDownloader.setThumbnailDownloadListener(
+                new ThumbnailDownloader.ThumbnailDownloadListener<PhotoHolder>() {
+                    @Override
+                    public void onThumbnailDownloaded(PhotoHolder target, Bitmap thumbnail) {
+                        Drawable drawable = new BitmapDrawable(getResources(), thumbnail);
+                        target.bindDrawable(drawable);
+                    }
+                }
+        );
+
         mPhotoHolderThumbnailDownloader.start();
         mPhotoHolderThumbnailDownloader.getLooper();
 
