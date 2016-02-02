@@ -52,6 +52,21 @@ public class ThumbnailDownloader<T> extends HandlerThread {
         };
     }
 
+    public void queueThumbnail(T target, String url) {
+        Log.i(TAG, "Got a URL " + url);
+
+        if (url == null) {
+            mRequestMap.remove(target);
+        } else {
+            mRequestMap.put(target, url);
+            mRequestHandler.obtainMessage(MESSAGE_DOWNLOAD, target).sendToTarget();
+        }
+    }
+
+    public void clearQueue() {
+        mRequestHandler.removeMessages(MESSAGE_DOWNLOAD);
+    }
+
     private void handleRequest(final T target) {
         try {
             final String url = mRequestMap.get(target);
@@ -80,17 +95,6 @@ public class ThumbnailDownloader<T> extends HandlerThread {
 
         } catch (IOException e) {
             Log.e(TAG, "Error downloading image", e);
-        }
-    }
-
-    public void queueThumbnail(T target, String url) {
-        Log.i(TAG, "Got a URL " + url);
-
-        if (url == null) {
-            mRequestMap.remove(target);
-        } else {
-            mRequestMap.put(target, url);
-            mRequestHandler.obtainMessage(MESSAGE_DOWNLOAD, target).sendToTarget();
         }
     }
 }
