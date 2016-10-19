@@ -4,9 +4,9 @@ package com.star.photogallery;
 import android.net.Uri;
 import android.util.Log;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import com.google.gson.Gson;
+import com.star.photogallery.model.Photo;
+import com.star.photogallery.model.Recent;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -19,7 +19,7 @@ import java.util.List;
 public class FlickrFetchr {
 
     private static final String TAG = "FlickrFetchr";
-    private static final String API_KEY = "03e55c312c15c20d0b02b48dbf58e646";
+    private static final String API_KEY = "d68bdef910c8657f4cbb1332f196a6c3";
 
     private static final String METHOD_KEY = "method";
     private static final String METHOD_VALUE = "flickr.photos.getRecent";
@@ -31,6 +31,7 @@ public class FlickrFetchr {
     private static final String NO_JSON_CALL_BACK_VALUE = "1";
     private static final String EXTRAS_KEY = "extras";
     private static final String EXTRAS_VALUE = "url_s";
+    private static final String PAGE_KEY = "page";
 
     public byte[] getUrlBytes(String urlSpec) throws IOException {
         URL url = new URL(urlSpec);
@@ -40,7 +41,7 @@ public class FlickrFetchr {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             InputStream in = httpURLConnection.getInputStream();
 
-            if (httpURLConnection.getResponseCode() != httpURLConnection.HTTP_OK) {
+            if (httpURLConnection.getResponseCode() != HttpURLConnection.HTTP_OK) {
                 throw new IOException(httpURLConnection.getResponseMessage() +
                         ": with " + urlSpec);
             }
@@ -63,7 +64,7 @@ public class FlickrFetchr {
         return new String(getUrlBytes(urlSpec));
     }
 
-    public List<GalleryItem> fetchItems() {
+    public List<GalleryItem> fetchItems(int page) {
 
         List<GalleryItem> items = new ArrayList<>();
 
@@ -75,40 +76,43 @@ public class FlickrFetchr {
                     .appendQueryParameter(FORMAT_KEY, FORMAT_VALUE)
                     .appendQueryParameter(NO_JSON_CALL_BACK_KEY, NO_JSON_CALL_BACK_VALUE)
                     .appendQueryParameter(EXTRAS_KEY, EXTRAS_VALUE)
+                    .appendQueryParameter(PAGE_KEY, page + "")
                     .build().toString();
 
             String jsonString = getUrlString(url);
+
             Log.i(TAG, "Received JSON: " + jsonString);
-            JSONObject jsonBody = new JSONObject(jsonString);
-            parseItems(items, jsonBody);
+
+            parseItems(items, jsonString);
+
         } catch (IOException e) {
             Log.e(TAG, "Failed to fetch items", e);
-        } catch (JSONException e) {
-            Log.e(TAG, "Failed to parse JSON", e);
         }
 
         return items;
     }
 
-    private void parseItems(List<GalleryItem> items, JSONObject jsonBody) throws JSONException {
-        JSONObject photosJSONObject = jsonBody.getJSONObject("photos");
-        JSONArray photoJSONArray = photosJSONObject.getJSONArray("photo");
+    private void parseItems(List<GalleryItem> items, String jsonString) {
 
-        for (int i = 0; i < photoJSONArray.length(); i++) {
-            JSONObject photoJSONObject = photoJSONArray.getJSONObject(i);
+        Gson gson = new Gson();
+
+        Recent recent = gson.fromJson(jsonString, Recent.class);
+
+        List<Photo> photos = recent.getPhotos().getPhoto();
+
+        for (int i = 0; i < photos.size(); i++) {
+            Photo photo = photos.get(i);
 
             GalleryItem item = new GalleryItem();
-            item.setId(photoJSONObject.getString("id"));
-            item.setCaption(photoJSONObject.getString("title"));
+            item.setId(photo.getId());
+            item.setCaption(photo.getTitle());
 
-            if (!photoJSONObject.has("url_s")) {
-                continue;
+            if (photo.getUrlS() != null) {
+                item.setUrl(photo.getUrlS());
+                items.add(item);
             }
 
-            item.setUrl(photoJSONObject.getString("url_s"));
-
-            items.add(item);
         }
-
     }
+
 }
