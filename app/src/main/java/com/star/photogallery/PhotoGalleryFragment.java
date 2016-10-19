@@ -10,6 +10,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.Fragment;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.DisplayMetrics;
@@ -194,13 +195,10 @@ public class PhotoGalleryFragment extends Fragment {
         @Override
         public void onBindViewHolder(PhotoHolder photoHolder, int position) {
             GalleryItem galleryItem = mGalleryItems.get(position);
-            Drawable placeHolder;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                placeHolder = getResources().getDrawable(R.drawable.emma, null);
-            } else {
-                placeHolder = getResources().getDrawable(R.drawable.emma);
-            }
+
+            Drawable placeHolder = ContextCompat.getDrawable(getContext(), R.drawable.emma);
             photoHolder.bindDrawable(placeHolder);
+
             mPhotoHolderThumbnailDownloader.queueThumbnail(photoHolder, galleryItem.getUrl());
         }
 
