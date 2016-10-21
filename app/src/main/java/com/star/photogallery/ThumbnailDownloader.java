@@ -105,4 +105,5 @@ public class ThumbnailDownloader<T> extends HandlerThread {
             Log.e(TAG, "Error downloading image", e);
         }
     }
+
 }
