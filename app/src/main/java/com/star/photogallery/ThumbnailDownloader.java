@@ -100,6 +100,10 @@ public class ThumbnailDownloader<T> extends HandlerThread {
         mRequestHandler.removeMessages(MESSAGE_PRELOAD);
     }
 
+    public void clearPreloadQueue() {
+        mRequestHandler.removeMessages(MESSAGE_PRELOAD);
+    }
+
     private void handleRequest(final T targetView) {
 
         final String url = mRequestMap.get(targetView);

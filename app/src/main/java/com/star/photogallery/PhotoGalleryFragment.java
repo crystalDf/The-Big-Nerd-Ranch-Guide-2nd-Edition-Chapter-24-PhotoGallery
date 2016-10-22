@@ -6,7 +6,6 @@ import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.Fragment;
@@ -22,8 +21,6 @@ import android.view.ViewTreeObserver;
 import android.widget.ImageView;
 
 import java.util.List;
-
-import static android.os.Build.VERSION_CODES.M;
 
 public class PhotoGalleryFragment extends Fragment {
 
@@ -95,25 +92,27 @@ public class PhotoGalleryFragment extends Fragment {
                     }
                 });
 
-        if (Build.VERSION.SDK_INT >= M) {
-            mPhotoRecyclerView.setOnScrollChangeListener(new View.OnScrollChangeListener() {
-                @Override
-                public void onScrollChange(View v, int scrollX, int scrollY, int oldScrollX, int oldScrollY) {
-                    myOnScrollChange();
+        mPhotoRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+                super.onScrollStateChanged(recyclerView, newState);
+
+                int firstVisibleItemPosition = mGridLayoutManager.findFirstVisibleItemPosition();
+                int lastVisibleItemPosition = mGridLayoutManager.findLastVisibleItemPosition();
+
+                switch (newState) {
+                    case RecyclerView.SCROLL_STATE_IDLE:
+                        preloadImages(firstVisibleItemPosition);
+                        preloadImages(lastVisibleItemPosition);
+                        break;
+                    case RecyclerView.SCROLL_STATE_DRAGGING:
+                        mPhotoHolderThumbnailDownloader.clearPreloadQueue();
+                        break;
                 }
 
-            });
-        } else {
-            mPhotoRecyclerView.setOnScrollListener(new RecyclerView.OnScrollListener() {
-
-                @Override
-                public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-                    super.onScrolled(recyclerView, dx, dy);
-
-                    myOnScrollChange();
-                }
-            });
-        }
+                updateCurrentPage(firstVisibleItemPosition, lastVisibleItemPosition);
+            }
+        });
 
         setupAdapter();
         
@@ -139,17 +138,6 @@ public class PhotoGalleryFragment extends Fragment {
         DisplayMetrics displayMetrics = Resources.getSystem().getDisplayMetrics();
 
         return (int) (sizeInPx / displayMetrics.density);
-    }
-
-    private void myOnScrollChange() {
-        int firstVisibleItemPosition = mGridLayoutManager.findFirstVisibleItemPosition();
-        int lastVisibleItemPosition = mGridLayoutManager.findLastVisibleItemPosition();
-
-        preloadImages(firstVisibleItemPosition);
-        preloadImages(lastVisibleItemPosition);
-
-        updateCurrentPage(firstVisibleItemPosition, lastVisibleItemPosition);
-
     }
 
     private void setupAdapter() {
