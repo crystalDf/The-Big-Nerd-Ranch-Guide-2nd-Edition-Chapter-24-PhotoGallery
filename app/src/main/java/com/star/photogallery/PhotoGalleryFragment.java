@@ -23,12 +23,16 @@ import android.widget.ImageView;
 
 import java.util.List;
 
+import static android.os.Build.VERSION_CODES.M;
+
 public class PhotoGalleryFragment extends Fragment {
 
     private static final String TAG = "PhotoGalleryFragment";
 
     private static final int DEFAULT_COLUMN_NUM = 3;
     private static final int ITEM_WIDTH = 100;
+
+    private static final int IMAGE_BUFFER_SIZE = 10;
 
     private RecyclerView mPhotoRecyclerView;
     private GridLayoutManager mGridLayoutManager;
@@ -91,11 +95,11 @@ public class PhotoGalleryFragment extends Fragment {
                     }
                 });
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        if (Build.VERSION.SDK_INT >= M) {
             mPhotoRecyclerView.setOnScrollChangeListener(new View.OnScrollChangeListener() {
                 @Override
                 public void onScrollChange(View v, int scrollX, int scrollY, int oldScrollX, int oldScrollY) {
-                    updateCurrentPage();
+                    myOnScrollChange();
                 }
 
             });
@@ -106,7 +110,7 @@ public class PhotoGalleryFragment extends Fragment {
                 public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
                     super.onScrolled(recyclerView, dx, dy);
 
-                    updateCurrentPage();
+                    myOnScrollChange();
                 }
             });
         }
@@ -137,16 +141,15 @@ public class PhotoGalleryFragment extends Fragment {
         return (int) (sizeInPx / displayMetrics.density);
     }
 
-    private void updateCurrentPage() {
+    private void myOnScrollChange() {
         int firstVisibleItemPosition = mGridLayoutManager.findFirstVisibleItemPosition();
         int lastVisibleItemPosition = mGridLayoutManager.findLastVisibleItemPosition();
 
-        if (lastVisibleItemPosition == (mGridLayoutManager.getItemCount() - 1) &&
-                mCurrentPage == mFetchedPage ) {
-            mCurrentPosition = firstVisibleItemPosition + 3;
-            mCurrentPage++;
-            new FetchItemsTask().execute(mCurrentPage);
-        }
+        preloadImages(firstVisibleItemPosition);
+        preloadImages(lastVisibleItemPosition);
+
+        updateCurrentPage(firstVisibleItemPosition, lastVisibleItemPosition);
+
     }
 
     private void setupAdapter() {
@@ -196,16 +199,25 @@ public class PhotoGalleryFragment extends Fragment {
         public void onBindViewHolder(PhotoHolder photoHolder, int position) {
             GalleryItem galleryItem = mGalleryItems.get(position);
 
-            Drawable placeHolder = ContextCompat.getDrawable(getContext(), R.drawable.emma);
-            photoHolder.bindDrawable(placeHolder);
+            Bitmap cachedBitmap =
+                    mPhotoHolderThumbnailDownloader.getLruCache().get(galleryItem.getUrl());
 
-            mPhotoHolderThumbnailDownloader.queueThumbnail(photoHolder, galleryItem.getUrl());
+            if (cachedBitmap != null) {
+                photoHolder.bindDrawable(new BitmapDrawable(getResources(), cachedBitmap));
+            } else {
+                Drawable placeHolder = ContextCompat.getDrawable(getContext(), R.drawable.emma);
+                photoHolder.bindDrawable(placeHolder);
+
+                mPhotoHolderThumbnailDownloader.queueThumbnail(photoHolder, galleryItem.getUrl());
+            }
+
         }
 
         @Override
         public int getItemCount() {
             return mGalleryItems.size();
         }
+
     }
 
     private class FetchItemsTask extends AsyncTask<Integer, Void, List<GalleryItem>> {
@@ -228,6 +240,27 @@ public class PhotoGalleryFragment extends Fragment {
             mFetchedPage++;
 
             setupAdapter();
+        }
+    }
+
+    private void preloadImages(int position) {
+
+        int startIndex = Math.max(position - IMAGE_BUFFER_SIZE, 0);
+        int endIndex = Math.min(position + IMAGE_BUFFER_SIZE, mGridLayoutManager.getItemCount() - 1);
+
+        for (int i = startIndex; i <= endIndex; i++) {
+            if (i != position) {
+                mPhotoHolderThumbnailDownloader.preloadImage(mGalleryItems.get(i).getUrl());
+            }
+        }
+    }
+
+    private void updateCurrentPage(int firstVisibleItemPosition, int lastVisibleItemPosition) {
+        if (lastVisibleItemPosition == (mGridLayoutManager.getItemCount() - 1) &&
+                mCurrentPage == mFetchedPage ) {
+            mCurrentPosition = firstVisibleItemPosition + 3;
+            mCurrentPage++;
+            new FetchItemsTask().execute(mCurrentPage);
         }
     }
 
